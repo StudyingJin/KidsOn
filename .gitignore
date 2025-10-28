@@ -1,0 +1,11 @@
+# IDE
+.idea/
+*.iml
+
+# Node/React
+frontend/node_modules/
+frontend/dist/
+
+# Java/Gradle
+backend/build/
+backend/.gradle/
