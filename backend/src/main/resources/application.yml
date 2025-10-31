@@ -1,0 +1,12 @@
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"   # 공개 노출은 최소화 권장
+  endpoint:
+    health:
+      probes:
+        enabled: true            # /actuator/health/liveness, /readiness 활성화
