@@ -1,2 +1,12 @@
 * text=auto eol=lf
 *.bat text eol=crlf
+# IDE
+.idea/
+*.iml
+
+# Frontend/Backend 산출물 & 캐시
+/frontend/dist/
+/backend/build/
+/node_modules/
+/attendance/frontend/node_modules/
+/attendance/backend/build/

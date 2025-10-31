@@ -1,0 +1,56 @@
+name: CD – Backend (ECR push)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "backend/**"
+      - "backend/Dockerfile"
+      - ".github/workflows/be-cd.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # OIDC 필수
+  packages: read
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPO: kidson
+
+jobs:
+  build-and-push:
+    if: ${{ hashFiles('backend/build.gradle') != '' || hashFiles('backend/build.gradle.kts') != '' }}
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1) GitHub→AWS OIDC 연동
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/GitHubActions-KidsOn
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 2) ECR 로그인
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 3) ECR 리포 없으면 생성
+      - name: Ensure ECR repository
+        run: |
+          aws ecr describe-repositories --repository-names $ECR_REPO || \
+          aws ecr create-repository --repository-name $ECR_REPO
+
+      # 4) 빌드 & 푸시
+      - name: Build & Push
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/$ECR_REPO:$IMAGE_TAG -t $REGISTRY/$ECR_REPO:latest .
+          docker push $REGISTRY/$ECR_REPO:$IMAGE_TAG
+          docker push $REGISTRY/$ECR_REPO:latest
