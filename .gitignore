@@ -1,11 +1,25 @@
-# IDE
+# OS/IDE
+.DS_Store
 .idea/
+.vscode/
 *.iml
 
-# Node/React
+# ----- Frontend (Vite/React) -----
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
+frontend/.eslintcache
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
 
-# Java/Gradle
-backend/build/
+# ----- Backend (Spring Boot/Gradle) -----
 backend/.gradle/
+backend/**/build/
+backend/out/
+
+# (우리는 빌드 산출물 경로를 통째로 무시하므로 *.jar 패턴은 굳이 쓰지 않음)
+# Gradle Wrapper 파일은 커밋(별도 예외 불필요; 위 패턴이 wrapper에는 매치 안 됨)
+
+# Logs
+**/*.log
