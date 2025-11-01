@@ -1,18 +1,13 @@
 name: CD – Backend (ECR push)
 
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - "backend/**"
-      - "backend/Dockerfile"
-      - ".github/workflows/be-cd.yml"
   workflow_dispatch:
+  push:
+    branches: [ "main" ]   # ← 테스트 동안 paths 필터 제거(확실히 돌려보기)
 
 permissions:
   contents: read
-  id-token: write   # OIDC 필수
-  packages: read
+  id-token: write          # OIDC 필수
 
 env:
   AWS_REGION: ap-northeast-2
@@ -20,37 +15,59 @@ env:
 
 jobs:
   build-and-push:
-    if: ${{ hashFiles('backend/build.gradle') != '' || hashFiles('backend/build.gradle.kts') != '' }}
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: backend } }
+
+    # ← 인라인 대신 멀티라인 문법(안정)
+    defaults:
+      run:
+        working-directory: backend
 
     steps:
       - uses: actions/checkout@v4
 
-      # 1) GitHub→AWS OIDC 연동
+      # 디렉터리 확인(진단)
+      - name: Show tree (diagnostic)
+        run: |
+          pwd
+          ls -la
+          ls -la backend || true
+
+      # OIDC로 AWS 연결
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: arn:aws:iam::034362065738:role/GitHubActions-KidsOn
           aws-region: ${{ env.AWS_REGION }}
 
-      # 2) ECR 로그인
+      # 내가 어떤 계정/롤인지(진단)
+      - name: Who am I on AWS? (diagnostic)
+        run: aws sts get-caller-identity
+
+      # ECR 로그인
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 3) ECR 리포 없으면 생성
+      - name: Show ECR registry (diagnostic)
+        run: echo "REGISTRY=${{ steps.login-ecr.outputs.registry }}"
+
+      # 리포 없으면 생성(리전 명시)
       - name: Ensure ECR repository
         run: |
-          aws ecr describe-repositories --repository-names $ECR_REPO || \
-          aws ecr create-repository --repository-name $ECR_REPO
+          aws ecr describe-repositories --repository-name "$ECR_REPO" --region "$AWS_REGION" || \
+          aws ecr create-repository --repository-name "$ECR_REPO" --image-tag-mutability MUTABLE --region "$AWS_REGION"
 
-      # 4) 빌드 & 푸시
+      # 빌드 & 푸시(컨텍스트=backend/)
       - name: Build & Push
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $REGISTRY/$ECR_REPO:$IMAGE_TAG -t $REGISTRY/$ECR_REPO:latest .
-          docker push $REGISTRY/$ECR_REPO:$IMAGE_TAG
-          docker push $REGISTRY/$ECR_REPO:latest
+          docker build -f Dockerfile -t "$REGISTRY/$ECR_REPO:$IMAGE_TAG" -t "$REGISTRY/$ECR_REPO:latest" .
+          docker push "$REGISTRY/$ECR_REPO:$IMAGE_TAG"
+          docker push "$REGISTRY/$ECR_REPO:latest"
+
+      # 푸시 직후 ECR에서 확인(진단)
+      - name: Verify image in ECR (latest)
+        run: |
+          aws ecr describe-images --repository-name "$ECR_REPO" --image-ids imageTag=latest --region "$AWS_REGION"
