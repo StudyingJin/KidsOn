@@ -2,6 +2,7 @@
 FROM gradle:8.7-jdk17 AS build
 WORKDIR /workspace
 COPY . .
+RUN chmod +x gradlew
 RUN ./gradlew clean bootJar -x test
 
 # Runtime stage
