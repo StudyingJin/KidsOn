@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write
+  id-token: write          # OIDC 필수
 
 env:
   AWS_REGION: ap-northeast-2
@@ -22,6 +22,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Show tree (diagnostic)
         run: |
           pwd
@@ -46,8 +47,8 @@ jobs:
 
       - name: Ensure ECR repository
         run: |
-          aws ecr describe-repositories --repository-name "$ECR_REPO" --region "$AWS_REGION" || \
-          aws ecr create-repository --repository-name "$ECR_REPO" --image-tag-mutability MUTABLE --region "$AWS_REGION"
+          aws ecr describe-repositories --repository-names $ECR_REPO --region $AWS_REGION || \
+          aws ecr create-repository --repository-name $ECR_REPO --image-tag-mutability MUTABLE --region $AWS_REGION
 
       - name: Build & Push
         env:
@@ -60,4 +61,4 @@ jobs:
 
       - name: Verify image in ECR (latest)
         run: |
-          aws ecr describe-images --repository-name "$ECR_REPO" --image-ids imageTag=latest --region "$AWS_REGION"
+          aws ecr describe-images --repository-name "$ECR_REPO" --image-ids imageTag=latest --region $AWS_REGION
