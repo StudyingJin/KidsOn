@@ -48,7 +48,7 @@ jobs:
       - name: Ensure ECR repository
         run: |
           aws ecr describe-repositories --repository-name "$ECR_REPO" --region "$AWS_REGION" || \
-          aws ecr create-repository --repository-name "$ECR_REPO" --image-tag-mutability MUTABLE --region "$AWS_REGION"
+          aws ecr.create-repository --repository-name "$ECR_REPO" --image-tag-mutability MUTABLE --region "$AWS_REGION"
 
       - name: Build & Push
         env:
