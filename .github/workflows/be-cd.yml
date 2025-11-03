@@ -3,7 +3,7 @@ name: CD – Backend (ECR push)
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]   # ← 테스트 동안 paths 필터 제거(확실히 돌려보기)
+    branches: [ "main" ]
 
 permissions:
   contents: read
@@ -16,8 +16,6 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
-    # ← 인라인 대신 멀티라인 문법(안정)
     defaults:
       run:
         working-directory: backend
@@ -25,25 +23,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 디렉터리 확인(진단)
       - name: Show tree (diagnostic)
         run: |
           pwd
           ls -la
           ls -la backend || true
 
-      # OIDC로 AWS 연결
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: arn:aws:iam::034362065738:role/GitHubActions-KidsOn
           aws-region: ${{ env.AWS_REGION }}
 
-      # 내가 어떤 계정/롤인지(진단)
       - name: Who am I on AWS? (diagnostic)
         run: aws sts get-caller-identity
 
-      # ECR 로그인
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -51,13 +45,11 @@ jobs:
       - name: Show ECR registry (diagnostic)
         run: echo "REGISTRY=${{ steps.login-ecr.outputs.registry }}"
 
-      # 리포 없으면 생성(리전 명시)
       - name: Ensure ECR repository
         run: |
           aws ecr describe-repositories --repository-name "$ECR_REPO" --region "$AWS_REGION" || \
-          aws ecr create-repository --repository-name "$ECR_REPO" --image-tag-mutability MUTABLE --region "$AWS_REGION"
+          aws ecr.create-repository --repository-name "$ECR_REPO" --image-tag-mutability MUTABLE --region "$AWS_REGION"
 
-      # 빌드 & 푸시(컨텍스트=backend/)
       - name: Build & Push
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -67,7 +59,6 @@ jobs:
           docker push "$REGISTRY/$ECR_REPO:$IMAGE_TAG"
           docker push "$REGISTRY/$ECR_REPO:latest"
 
-      # 푸시 직후 ECR에서 확인(진단)
       - name: Verify image in ECR (latest)
         run: |
-          aws ecr describe-images --repository-name "$ECR_REPO" --image-ids imageTag=latest --region "$AWS_REGION"
+          aws ecr.describe-images --repository-name "$ECR_REPO" --image-ids imageTag=latest --region "$AWS_REGION"

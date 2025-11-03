@@ -1,4 +1,4 @@
-package com.kidson.backend;
+package com.kidson.app;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
