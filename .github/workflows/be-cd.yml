@@ -61,4 +61,7 @@ jobs:
 
       - name: Verify image in ECR (latest)
         run: |
-          aws ecr.describe-images --repository-name "$ECR_REPO" --image-ids imageTag=latest --region "$AWS_REGION"
+          aws ecr describe-images \
+            --repository-name "$ECR_REPO" \
+            --image-ids imageTag=latest \
+            --region "$AWS_REGION"
